@@ -1,8 +1,8 @@
 // Copyright (c) 2022 DisplayLink (UK) Ltd.
 pipeline {
     agent {
-        dockerfile {
-            filename 'src/Dockerfile'
+        docker {
+            image "swt/evdi:1.0"
             label 'linux && big && docker'
         }
     }

@@ -49,7 +49,7 @@ patch_linux_with_evdi_module()
 
 export ARCH=x86_64 # or um
 EVDI_REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)
-LINUX_DIR=$EVDI_REPO_DIR/tmp/linux
+LINUX_DIR=/usr/src/linux
 mkdir -p "$EVDI_REPO_DIR/tmp"
 [ -d "${EVDI_REPO_DIR}"/tmp/linux ] || (cd "$EVDI_REPO_DIR/tmp"; clone_linux)
 
