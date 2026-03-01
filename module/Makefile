@@ -12,6 +12,10 @@ ifneq (,$(findstring rhel,$(ID_LIKE)))
 ELFLAG := -DEL$(shell echo $(VERSION_ID) | cut -d. -f1)
 endif
 
+ifneq (,$(findstring centos,$(ID)))
+CENTOSFLAG := -DCENTOS$(VERSION_ID)
+endif
+
 Raspbian := $(shell grep -Eic 'raspb(erry|ian)' /proc/cpuinfo /etc/os-release 2>/dev/null )
 ifeq (,$(findstring 0, $(Raspbian)))
 RPIFLAG := -DRPI
@@ -23,7 +27,7 @@ ifneq ($(DKMS_BUILD),)
 
 KERN_DIR := /lib/modules/$(KERNELRELEASE)/build
 
-ccflags-y := -Iinclude/uapi/drm -Iinclude/drm $(ELFLAG) $(RPIFLAG)
+ccflags-y := -Iinclude/uapi/drm -Iinclude/drm $(ELFLAG) $(CENTOSFLAG) $(RPIFLAG)
 evdi-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o evdi_i2c.o
 evdi-$(CONFIG_COMPAT) += evdi_ioc32.o
 obj-m := evdi.o
@@ -45,7 +49,7 @@ ifneq ($(KERNELRELEASE),)
 
 # inside kbuild
 # Note: this can be removed once it is in kernel tree and Kconfig is properly used
-ccflags-y := -isystem include/uapi/drm $(CFLAGS) $(ELFLAG) $(RPIFLAG)
+ccflags-y := -isystem include/uapi/drm $(CFLAGS) $(ELFLAG) $(CENTOSFLAG) $(RPIFLAG)
 evdi-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o evdi_i2c.o
 evdi-$(CONFIG_COMPAT) += evdi_ioc32.o
 CONFIG_DRM_EVDI ?= m

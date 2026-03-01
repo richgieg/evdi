@@ -203,20 +203,20 @@ static const struct drm_framebuffer_funcs evdifb_funcs = {
 static int
 evdi_framebuffer_init(struct drm_device *dev,
 		      struct evdi_framebuffer *efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
 		      const struct drm_format_info *info,
 #endif
 		      const struct drm_mode_fb_cmd2 *mode_cmd,
 		      struct evdi_gem_object *obj)
 {
 	efb->obj = obj;
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
 	if (info == NULL)
 		info = drm_get_format_info(dev, mode_cmd->pixel_format,
 					   mode_cmd->modifier[0]);
 #endif
 	drm_helper_mode_fill_fb_struct(dev, &efb->base,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
 				       info,
 #endif
 				       mode_cmd);
@@ -253,7 +253,7 @@ static bool is_xe_gem(struct dma_buf *dmabuf)
 struct drm_framebuffer *evdi_fb_user_fb_create(
 					struct drm_device *dev,
 					struct drm_file *file,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
 					const struct drm_format_info *info,
 #endif
 					const struct drm_mode_fb_cmd2 *mode_cmd)
@@ -289,7 +289,7 @@ struct drm_framebuffer *evdi_fb_user_fb_create(
 	efb->base.obj[0] = obj;
 
 	ret = evdi_framebuffer_init(dev, efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
 				    info,
 #endif
 				    mode_cmd, to_evdi_bo(obj));
