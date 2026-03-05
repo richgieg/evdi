@@ -203,23 +203,20 @@ static const struct drm_framebuffer_funcs evdifb_funcs = {
 static int
 evdi_framebuffer_init(struct drm_device *dev,
 		      struct evdi_framebuffer *efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
 		      const struct drm_format_info *info,
-#endif
 		      const struct drm_mode_fb_cmd2 *mode_cmd,
 		      struct evdi_gem_object *obj)
 {
 	efb->obj = obj;
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+
+#if EVDI_DRM_HELPER_MODE_FILL_FB_STRUCT_HAS_FORMAT_INFO
 	if (info == NULL)
-		info = drm_get_format_info(dev, mode_cmd->pixel_format,
-					   mode_cmd->modifier[0]);
+		info = drm_format_info(mode_cmd->pixel_format);
+	drm_helper_mode_fill_fb_struct(dev, &efb->base, info, mode_cmd);
+#else
+	(void)info;
+	drm_helper_mode_fill_fb_struct(dev, &efb->base, mode_cmd);
 #endif
-	drm_helper_mode_fill_fb_struct(dev, &efb->base,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
-				       info,
-#endif
-				       mode_cmd);
 	return drm_framebuffer_init(dev, &efb->base, &evdifb_funcs);
 }
 
@@ -250,13 +247,11 @@ static bool is_xe_gem(struct dma_buf *dmabuf)
 }
 #endif
 
-struct drm_framebuffer *evdi_fb_user_fb_create(
-					struct drm_device *dev,
-					struct drm_file *file,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
-					const struct drm_format_info *info,
-#endif
-					const struct drm_mode_fb_cmd2 *mode_cmd)
+static struct drm_framebuffer *evdi_fb_user_fb_create_common(
+						struct drm_device *dev,
+						struct drm_file *file,
+						const struct drm_format_info *info,
+						const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct drm_gem_object *obj;
 	struct evdi_framebuffer *efb;
@@ -288,11 +283,7 @@ struct drm_framebuffer *evdi_fb_user_fb_create(
 		goto err_no_mem;
 	efb->base.obj[0] = obj;
 
-	ret = evdi_framebuffer_init(dev, efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
-				    info,
-#endif
-				    mode_cmd, to_evdi_bo(obj));
+	ret = evdi_framebuffer_init(dev, efb, info, mode_cmd, to_evdi_bo(obj));
 	if (ret)
 		goto err_inval;
 
@@ -309,3 +300,22 @@ struct drm_framebuffer *evdi_fb_user_fb_create(
 	drm_gem_object_put(obj);
 	return ERR_PTR(-EINVAL);
 }
+
+#if EVDI_DRM_FB_CREATE_HAS_FORMAT_INFO
+struct drm_framebuffer *evdi_fb_user_fb_create(
+					struct drm_device *dev,
+					struct drm_file *file,
+					const struct drm_format_info *info,
+					const struct drm_mode_fb_cmd2 *mode_cmd)
+{
+	return evdi_fb_user_fb_create_common(dev, file, info, mode_cmd);
+}
+#else
+struct drm_framebuffer *evdi_fb_user_fb_create(
+					struct drm_device *dev,
+					struct drm_file *file,
+					const struct drm_mode_fb_cmd2 *mode_cmd)
+{
+	return evdi_fb_user_fb_create_common(dev, file, NULL, mode_cmd);
+}
+#endif

@@ -38,6 +38,8 @@
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_fb_helper.h>
 
+#include "evdi_drm_compat.h"
+
 #include "evdi_debug.h"
 #include "tests/evdi_test.h"
 
@@ -102,7 +104,7 @@ long evdi_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 struct drm_framebuffer *evdi_fb_user_fb_create(
 				struct drm_device *dev,
 				struct drm_file *file,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE
+#if EVDI_DRM_FB_CREATE_HAS_FORMAT_INFO
 				const struct drm_format_info *info,
 #endif
 				const struct drm_mode_fb_cmd2 *mode_cmd);
