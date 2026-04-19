@@ -13,7 +13,7 @@ ELFLAG := -DEL$(shell echo $(VERSION_ID) | cut -d. -f1)
 endif
 
 ifneq (,$(findstring centos,$(ID)))
-CENTOSFLAG := -DCENTOS$(VERSION_ID)
+CENTOSFLAG := -DCENTOS$(shell echo $(VERSION_ID) | cut -d. -f1)
 endif
 
 Raspbian := $(shell grep -Eic 'raspb(erry|ian)' /proc/cpuinfo /etc/os-release 2>/dev/null )
