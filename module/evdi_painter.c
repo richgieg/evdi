@@ -185,6 +185,9 @@ static int copy_primary_pixels_on_xe(struct evdi_framebuffer *efb,
 	const int byte_span = max_x * 4;
 	struct iosys_map dst_mapping = IOSYS_MAP_INIT_VADDR(vmalloc(max_x * 4));
 
+	if (!dst_mapping.vaddr)
+		return -ENOMEM;
+
 	for (y = 0; y < max_y; ++y) {
 		const int src_offset = fb->offsets[0] + fb->pitches[0] * y;
 		struct iosys_map src_mapping = IOSYS_MAP_INIT_VADDR((char *)efb->obj->vmapping + src_offset);
@@ -193,8 +196,10 @@ static int copy_primary_pixels_on_xe(struct evdi_framebuffer *efb,
 
 		drm_clflush_virt_range(src_mapping.vaddr, byte_span);
 		drm_memcpy_from_wc(&dst_mapping, &src_mapping, byte_span);
-		if (copy_to_user(dst, dst_mapping.vaddr, byte_span))
+		if (copy_to_user(dst, dst_mapping.vaddr, byte_span)) {
+			vfree(dst_mapping.vaddr);
 			return -EFAULT;
+		}
 
 		src_mapping.vaddr += fb->pitches[0];
 		dst += buf_byte_stride;
