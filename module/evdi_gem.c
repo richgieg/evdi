@@ -539,7 +539,7 @@ evdi_prime_import_sg_table(struct drm_device *dev,
 
 	npages = DIV_ROUND_UP(attach->dmabuf->size, PAGE_SIZE);
 	npages_sg = evdi_get_sg_table_pages_num(sg);
-	npages = npages < npages_sg ? npages_sg : npages_sg;
+	npages = max(npages, npages_sg);
 	DRM_DEBUG_PRIME("Importing %d pages\n", npages);
 	obj->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL);
 	if (!obj->pages) {
