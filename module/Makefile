@@ -8,7 +8,7 @@
 
 include /etc/os-release
 
-ifneq (,$(findstring rhel,$(ID_LIKE)))
+ifneq (,$(findstring rhel,$(ID_LIKE) $(ID)))
 ELFLAG := -DEL$(shell echo $(VERSION_ID) | cut -d. -f1)
 endif
 
