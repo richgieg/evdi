@@ -22,10 +22,9 @@
 #include <linux/compat.h>
 
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_ioctl.h>
-#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
-#else
+#elif defined(EVDI_HAVE_DRMP_H)
 #include <drm/drmP.h>
 #endif
 #include <drm/drm_edid.h>

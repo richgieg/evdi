@@ -6,20 +6,29 @@
 # more details.
 #
 
-include /etc/os-release
-
-ifneq (,$(findstring rhel,$(ID_LIKE) $(ID)))
-ELFLAG := -DEL$(shell echo $(VERSION_ID) | cut -d. -f1)
-endif
-
-ifneq (,$(findstring centos,$(ID)))
-CENTOSFLAG := -DCENTOS$(shell echo $(VERSION_ID) | cut -d. -f1)
-endif
-
-Raspbian := $(shell grep -Eic 'raspb(erry|ian)' /proc/cpuinfo /etc/os-release 2>/dev/null )
-ifeq (,$(findstring 0, $(Raspbian)))
-RPIFLAG := -DRPI
-endif
+# Kernel API differences are detected at build time by conftest.sh (which
+# test-compiles probes against the target kernel headers) rather than guessed
+# from the distribution. See conftest.sh and the EVDI_HAVE_* macros it emits
+# into the generated evdi_detect.h.
+#
+# Generate evdi_detect.h, force-include it into every object, and make every
+# object depend on it. Used from the kbuild-context branches below, where the
+# kernel compiler ($(CC)) and its include/cflags are available. The header is
+# regenerated each build but only rewritten when its contents change, so
+# incremental builds and kernel switches both behave correctly.
+define evdi_conftest
+ccflags-y += -include $$(obj)/evdi_detect.h
+clean-files := evdi_detect.h evdi_detect.h.tmp
+# Explicit (not pattern) prerequisite: GNU make merges prerequisites from
+# explicit rules with kbuild's own $(obj)/%.o pattern rule, so the header is
+# generated before any object is compiled. Cover the optional COMPAT object too.
+$$(addprefix $$(obj)/, $$(evdi-y) evdi_ioc32.o): $$(obj)/evdi_detect.h
+$$(obj)/evdi_detect.h: $$(src)/conftest.sh FORCE
+	$$(Q)$$(CONFIG_SHELL) $$(src)/conftest.sh "$$(CC)" \
+		"$$(NOSTDINC_FLAGS) $$(LINUXINCLUDE) $$(KBUILD_CPPFLAGS) $$(KBUILD_CFLAGS) -DMODULE" \
+		$$@.tmp
+	$$(Q)cmp -s $$@.tmp $$@ 2>/dev/null && rm -f $$@.tmp || mv $$@.tmp $$@
+endef
 
 ifneq ($(DKMS_BUILD),)
 
@@ -27,10 +36,11 @@ ifneq ($(DKMS_BUILD),)
 
 KERN_DIR := /lib/modules/$(KERNELRELEASE)/build
 
-ccflags-y := -Iinclude/uapi/drm -Iinclude/drm $(ELFLAG) $(CENTOSFLAG) $(RPIFLAG)
+ccflags-y := -Iinclude/uapi/drm -Iinclude/drm
 evdi-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o evdi_i2c.o
 evdi-$(CONFIG_COMPAT) += evdi_ioc32.o
 obj-m := evdi.o
+$(eval $(call evdi_conftest))
 
 KBUILD_VERBOSE ?= 1
 
@@ -49,12 +59,13 @@ ifneq ($(KERNELRELEASE),)
 
 # inside kbuild
 # Note: this can be removed once it is in kernel tree and Kconfig is properly used
-ccflags-y := -isystem include/uapi/drm $(CFLAGS) $(ELFLAG) $(CENTOSFLAG) $(RPIFLAG)
+ccflags-y := -isystem include/uapi/drm $(CFLAGS)
 evdi-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o evdi_i2c.o
 evdi-$(CONFIG_COMPAT) += evdi_ioc32.o
 CONFIG_DRM_EVDI ?= m
 obj-$(CONFIG_DRM_EVDI) := evdi.o
 obj-y += tests/
+$(eval $(call evdi_conftest))
 
 else
 
@@ -87,7 +98,7 @@ module:
 	$(MAKE) -C $(KDIR) M=$$PWD
 
 clean:
-	$(RM) -rf *.o *.a *.ko .tmp* .*.*.cmd Module.symvers evdi.mod.c modules.order
+	$(RM) -rf *.o *.a *.ko .tmp* .*.*.cmd Module.symvers evdi.mod.c modules.order evdi_detect.h evdi_detect.h.tmp
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=$(MOD_KERNEL_PATH) modules_install

@@ -14,8 +14,7 @@
 #include <linux/slab.h>
 #include <linux/dma-buf.h>
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifdef EVDI_HAVE_DRMP_H
 #include <drm/drmP.h>
 #endif
 #include <drm/drm_crtc.h>
@@ -23,7 +22,7 @@
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_atomic.h>
 #include <drm/drm_print.h>
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_ATOMIC_DIRTYFB
 #include <drm/drm_damage_helper.h>
 #endif
 #include "evdi_drm_drv.h"
@@ -83,8 +82,7 @@ struct drm_clip_rect evdi_framebuffer_sanitize_rect(
 	return rect;
 }
 
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifndef EVDI_HAVE_ATOMIC_DIRTYFB
 /*
  * Function taken from
  * https://lore.kernel.org/dri-devel/20180905233901.2321-5-drawat@vmware.com/
@@ -181,10 +179,10 @@ static void evdi_user_framebuffer_destroy(struct drm_framebuffer *fb)
 
 	EVDI_CHECKPT();
 	if (efb->obj)
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
-		drm_gem_object_put(&efb->obj->base);
-#else
+#ifdef EVDI_HAVE_GEM_OBJECT_PUT_UNLOCKED
 		drm_gem_object_put_unlocked(&efb->obj->base);
+#else
+		drm_gem_object_put(&efb->obj->base);
 #endif
 	drm_framebuffer_cleanup(fb);
 	kfree(efb);
@@ -193,7 +191,7 @@ static void evdi_user_framebuffer_destroy(struct drm_framebuffer *fb)
 static const struct drm_framebuffer_funcs evdifb_funcs = {
 	.create_handle = evdi_user_framebuffer_create_handle,
 	.destroy = evdi_user_framebuffer_destroy,
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_ATOMIC_DIRTYFB
 	.dirty = drm_atomic_helper_dirtyfb,
 #else
 	.dirty = evdi_user_framebuffer_dirty,
@@ -203,20 +201,20 @@ static const struct drm_framebuffer_funcs evdifb_funcs = {
 static int
 evdi_framebuffer_init(struct drm_device *dev,
 		      struct evdi_framebuffer *efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 		      const struct drm_format_info *info,
 #endif
 		      const struct drm_mode_fb_cmd2 *mode_cmd,
 		      struct evdi_gem_object *obj)
 {
 	efb->obj = obj;
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 	if (info == NULL)
 		info = drm_get_format_info(dev, mode_cmd->pixel_format,
 					   mode_cmd->modifier[0]);
 #endif
 	drm_helper_mode_fill_fb_struct(dev, &efb->base,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 				       info,
 #endif
 				       mode_cmd);
@@ -253,7 +251,7 @@ static bool is_xe_gem(struct dma_buf *dmabuf)
 struct drm_framebuffer *evdi_fb_user_fb_create(
 					struct drm_device *dev,
 					struct drm_file *file,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 					const struct drm_format_info *info,
 #endif
 					const struct drm_mode_fb_cmd2 *mode_cmd)
@@ -289,7 +287,7 @@ struct drm_framebuffer *evdi_fb_user_fb_create(
 	efb->base.obj[0] = obj;
 
 	ret = evdi_framebuffer_init(dev, efb,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 				    info,
 #endif
 				    mode_cmd, to_evdi_bo(obj));

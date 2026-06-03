@@ -10,13 +10,12 @@
 #include "linux/thread_info.h"
 #include "linux/mm.h"
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_file.h>
 #include <drm/drm_vblank.h>
 #include <drm/drm_ioctl.h>
 #include <drm/drm_gem_framebuffer_helper.h>
-#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
-#else
+#elif defined(EVDI_HAVE_DRMP_H)
 #include <drm/drmP.h>
 #endif
 #include <drm/drm_edid.h>
@@ -35,18 +34,22 @@
 #include <linux/dma-buf.h>
 #include <linux/vt_kern.h>
 #include <linux/vmalloc.h>
-#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_COMPILER_ATTRIBUTES_H
 #include <linux/compiler_attributes.h>
 #endif
 
-/* Import of DMA_BUF namespace was reverted in EL8 */
-#if KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
-MODULE_IMPORT_NS("DMA_BUF");
-#elif KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE
+/*
+ * MODULE_IMPORT_NS requires a string literal since 6.13; before that it took a
+ * bare token. The bare-token probe stops compiling exactly at 6.13, so prefer
+ * it; fall back to the string form for the macro's earlier (token) era.
+ */
+#ifdef EVDI_HAVE_MODULE_IMPORT_NS
 MODULE_IMPORT_NS(DMA_BUF);
+#elif defined(EVDI_HAVE_MODULE_IMPORT_NS_STRING)
+MODULE_IMPORT_NS("DMA_BUF");
 #endif
 
-#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PROBE_HELPER_H
 #include <drm/drm_probe_helper.h>
 #endif
 
@@ -117,7 +120,7 @@ struct evdi_painter {
 	unsigned int ddcci_buffer_length;
 	struct notifier_block vt_notifier;
 	int fg_console;
-#if KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_DRM_DEBUGFS_ROOT
 	struct dentry *debugfs_measure_copy;
 #endif
 };
@@ -173,7 +176,7 @@ static void collapse_dirty_rects(struct drm_clip_rect *rects, int *count)
 	*count = 1;
 }
 
-#if (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)) && defined(CONFIG_X86)
+#if defined(EVDI_HAVE_IOSYS_MAP) && defined(CONFIG_X86)
 static int copy_primary_pixels_on_xe(struct evdi_framebuffer *efb,
 			       char __user *buffer,
 			       int buf_byte_stride,
@@ -223,7 +226,7 @@ static int copy_primary_pixels(struct evdi_framebuffer *efb,
 
 	EVDI_CHECKPT();
 
-#if (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)) && defined(CONFIG_X86)
+#if defined(EVDI_HAVE_IOSYS_MAP) && defined(CONFIG_X86)
 	if (efb->is_from_xe)
 		return copy_primary_pixels_on_xe(efb, buffer, buf_byte_stride, max_x, max_y);
 #endif
@@ -742,7 +745,10 @@ void evdi_painter_send_update_ready_if_needed(struct evdi_painter *painter)
 	EVDI_CHECKPT();
 	if (painter) {
 		painter_lock(painter);
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
+/* Cursor-plane behaviour from the 5.10 DRM line; no API of its own, so it is
+ * keyed to the same boundary as the drm_prime_pages_to_sg() signature change.
+ */
+#ifdef EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV
 		if (painter->was_update_requested && painter->num_dirts) {
 #else
 		if (painter->was_update_requested) {
@@ -774,9 +780,8 @@ void evdi_painter_dpms_notify(struct evdi_painter *painter, int mode)
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		painter->fg_console = fg_console;
-#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_FALLTHROUGH
 		fallthrough;
-#else
 #endif
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
@@ -794,13 +799,13 @@ void evdi_painter_dpms_notify(struct evdi_painter *painter, int mode)
 static void evdi_log_pixel_format(uint32_t pixel_format,
 		char *buf, size_t size)
 {
-#if KERNEL_VERSION(5, 14, 0) <= LINUX_VERSION_CODE || defined(EL8)
-	snprintf(buf, size, "pixel format %p4cc", &pixel_format);
-#else
+#ifdef EVDI_HAVE_DRM_FORMAT_NAME_BUF
 	struct drm_format_name_buf format_name;
 
 	drm_get_format_name(pixel_format, &format_name);
 	snprintf(buf, size, "pixel format %s", format_name.str);
+#else
+	snprintf(buf, size, "pixel format %p4cc", &pixel_format);
 #endif
 }
 
@@ -1266,7 +1271,7 @@ static void evdi_painter_unregister_from_vt(struct evdi_painter *painter)
 	EVDI_TEST_HOOK(evdi_testhook_painter_vt_register(&painter->vt_notifier));
 }
 
-#if KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_DRM_DEBUGFS_ROOT
 static int evdi_painter_debugfs_measure_copy_fb(void *data, u64 val)
 {
 	struct evdi_painter *painter = (struct evdi_painter *)data;
@@ -1330,7 +1335,7 @@ int evdi_painter_init(struct evdi_device *dev)
 		dev->painter->vblank = NULL;
 		dev->painter->drm_device = dev->ddev;
 		evdi_painter_register_to_vt(dev->painter);
-#if KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_DRM_DEBUGFS_ROOT
 		dev->painter->debugfs_measure_copy = debugfs_create_file("measure_copy_fb", 0400, dev->ddev->debugfs_root, dev->painter, &evdi_painter_debug_test_ops);
 #endif
 
@@ -1352,7 +1357,7 @@ void evdi_painter_cleanup(struct evdi_painter *painter)
 	}
 
 	painter_lock(painter);
-#if KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_DRM_DEBUGFS_ROOT
 	debugfs_lookup_and_remove("measure_copy_fb", painter->drm_device->debugfs_root);
 #endif
 	evdi_painter_unregister_from_vt(painter);

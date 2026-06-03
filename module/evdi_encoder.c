@@ -12,8 +12,7 @@
  */
 
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifdef EVDI_HAVE_DRMP_H
 #include <drm/drmP.h>
 #endif
 #include <drm/drm_crtc.h>
