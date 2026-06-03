@@ -10,17 +10,15 @@
 
 #include <linux/sched.h>
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
-#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
+#if defined(EVDI_HAVE_DMA_BUF_MAP) && !defined(EVDI_HAVE_IOSYS_MAP)
 #include <linux/dma-buf-map.h>
 #endif
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_gem_ttm_helper.h>
 #include <drm/drm_prime.h>
 #include <drm/drm_file.h>
 #include <linux/minmax.h>
-#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
-#else
+#elif defined(EVDI_HAVE_DRMP_H)
 #include <drm/drmP.h>
 #endif
 #include <drm/drm_print.h>
@@ -32,13 +30,13 @@
 #include <linux/vmalloc.h>
 
 
-#if KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE || defined(EL10)
-MODULE_IMPORT_NS("DMA_BUF");
-#elif KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL9)
+#ifdef EVDI_HAVE_MODULE_IMPORT_NS
 MODULE_IMPORT_NS(DMA_BUF);
+#elif defined(EVDI_HAVE_MODULE_IMPORT_NS_STRING)
+MODULE_IMPORT_NS("DMA_BUF");
 #endif
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 static int evdi_prime_pin(struct drm_gem_object *obj);
 static void evdi_prime_unpin(struct drm_gem_object *obj);
 
@@ -109,7 +107,7 @@ struct evdi_gem_object *evdi_gem_alloc_object(struct drm_device *dev,
 	}
 
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 	obj->base.funcs = &gem_obj_funcs;
 #endif
 
@@ -141,10 +139,10 @@ evdi_gem_create(struct drm_file *file,
 		kfree(obj);
 		return ret;
 	}
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
-	drm_gem_object_put(&obj->base);
-#else
+#ifdef EVDI_HAVE_GEM_OBJECT_PUT_UNLOCKED
 	drm_gem_object_put_unlocked(&obj->base);
+#else
+	drm_gem_object_put(&obj->base);
 #endif
 	*handle_p = handle;
 	return 0;
@@ -190,8 +188,7 @@ int evdi_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	if (ret)
 		return ret;
 
-/* Some VMA modifier function patches present in 6.3 were reverted in EL8 kernels */
-#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE || defined(EL9)
+#ifdef EVDI_HAVE_VM_FLAGS_MOD
 	vm_flags_mod(vma, VM_MIXEDMAP, VM_PFNMAP);
 #else
 	vma->vm_flags &= ~VM_PFNMAP;
@@ -201,7 +198,7 @@ int evdi_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	return ret;
 }
 
-#if KERNEL_VERSION(4, 17, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_VM_FAULT_T
 vm_fault_t evdi_gem_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
@@ -292,7 +289,7 @@ static void evdi_unpin_pages(struct evdi_gem_object *obj)
 		evdi_gem_put_pages(obj);
 	mutex_unlock(&obj->pages_lock);
 }
-# if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DMA_BUF_VMAP_UNLOCKED
 #if IS_ENABLED(CONFIG_DRM_TTM_HELPER)
 static bool is_xe_gem_ttm_object_without_vmap(struct dma_buf *dmabuf)
 {
@@ -370,14 +367,14 @@ int evdi_gem_vmap(struct evdi_gem_object *obj)
 	int ret;
 
 	if (evdi_drm_gem_object_use_import_attach(&obj->base)) {
-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_IOSYS_MAP
 		struct iosys_map map = IOSYS_MAP_INIT_VADDR(NULL);
-#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
+#elif defined(EVDI_HAVE_DMA_BUF_MAP)
 		struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(NULL);
 #endif
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
-# if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
+# ifdef EVDI_HAVE_DMA_BUF_VMAP_UNLOCKED
 		ret = evdi_dma_buf_vmap_unlocked(obj->base.import_attach->dmabuf, &map);
 # else
 		ret = dma_buf_vmap(obj->base.import_attach->dmabuf, &map);
@@ -407,7 +404,7 @@ int evdi_gem_vmap(struct evdi_gem_object *obj)
 void evdi_gem_vunmap(struct evdi_gem_object *obj)
 {
 	if (evdi_drm_gem_object_use_import_attach(&obj->base)) {
-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_IOSYS_MAP
 		struct iosys_map map = IOSYS_MAP_INIT_VADDR(NULL);
 
 		if (obj->vmap_is_iomem)
@@ -415,13 +412,13 @@ void evdi_gem_vunmap(struct evdi_gem_object *obj)
 		else
 			iosys_map_set_vaddr(&map, obj->vmapping);
 
-# if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+# ifdef EVDI_HAVE_DMA_BUF_VMAP_UNLOCKED
 		evdi_dma_buf_vunmap_unlocked(obj->base.import_attach->dmabuf, &map);
 # else
 		dma_buf_vunmap(obj->base.import_attach->dmabuf, &map);
 # endif
 
-#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
+#elif defined(EVDI_HAVE_DMA_BUF_MAP)
 		struct dma_buf_map map;
 
 		if (obj->vmap_is_iomem)
@@ -503,8 +500,7 @@ int evdi_gem_mmap(struct drm_file *file,
 	return ret;
 }
 
-#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE
-#else
+#ifndef EVDI_HAVE_FOR_EACH_SGTABLE_PAGE
 #define for_each_sgtable_page(sgt, piter, pgoffset)	\
 	for_each_sg_page(sgt->sgl, piter, sgt->orig_nents, pgoffset)
 #endif
@@ -547,7 +543,7 @@ evdi_prime_import_sg_table(struct drm_device *dev,
 		return ERR_PTR(-ENOMEM);
 	}
 
-#if KERNEL_VERSION(5, 12, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PRIME_SG_TO_PAGE_ARRAY
 	drm_prime_sg_to_page_array(sg, obj->pages, npages);
 #else
 	drm_prime_sg_to_page_addr_arrays(sg, obj->pages, NULL, npages);
@@ -557,7 +553,7 @@ evdi_prime_import_sg_table(struct drm_device *dev,
 	return &obj->base;
 }
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 static int evdi_prime_pin(struct drm_gem_object *obj)
 {
 	struct evdi_gem_object *bo = to_evdi_bo(obj);
@@ -577,7 +573,7 @@ struct sg_table *evdi_prime_get_sg_table(struct drm_gem_object *obj)
 {
 	struct evdi_gem_object *bo = to_evdi_bo(obj);
 
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV
 	return drm_prime_pages_to_sg(obj->dev, bo->pages, bo->base.size >> PAGE_SHIFT);
 #else
 	return drm_prime_pages_to_sg(bo->pages, bo->base.size >> PAGE_SHIFT);

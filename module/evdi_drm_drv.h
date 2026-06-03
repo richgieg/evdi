@@ -18,18 +18,18 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/i2c.h>
-#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRMP_H
+#include <drm/drmP.h>
+#else
 #include <drm/drm_drv.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_ioctl.h>
 #include <drm/drm_vblank.h>
-#else
-#include <drm/drmP.h>
 #endif
-#if KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
-#include <drm/drm_framebuffer.h>
-#else
+#ifdef EVDI_HAVE_DRM_IRQ_H
 #include <drm/drm_irq.h>
+#else
+#include <drm/drm_framebuffer.h>
 #endif
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
@@ -66,7 +66,7 @@ struct evdi_gem_object {
 	unsigned int pages_pin_count;
 	struct mutex pages_lock;
 	void *vmapping;
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 	bool vmap_is_iomem;
 #endif
 	struct sg_table *sg;
@@ -102,7 +102,7 @@ long evdi_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 struct drm_framebuffer *evdi_fb_user_fb_create(
 				struct drm_device *dev,
 				struct drm_file *file,
-#if KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE || defined(CENTOS9) || defined(CENTOS10)
+#ifdef EVDI_HAVE_FB_FORMAT_INFO
 				const struct drm_format_info *info,
 #endif
 				const struct drm_mode_fb_cmd2 *mode_cmd);
@@ -128,7 +128,7 @@ int evdi_gem_vmap(struct evdi_gem_object *obj);
 void evdi_gem_vunmap(struct evdi_gem_object *obj);
 int evdi_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma);
 
-#if KERNEL_VERSION(4, 17, 0) <= LINUX_VERSION_CODE
+#ifdef EVDI_HAVE_VM_FAULT_T
 vm_fault_t evdi_gem_fault(struct vm_fault *vmf);
 #else
 int evdi_gem_fault(struct vm_fault *vmf);
