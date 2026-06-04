@@ -24,9 +24,8 @@ clean-files := evdi_detect.h evdi_detect.h.tmp
 # generated before any object is compiled. Cover the optional COMPAT object too.
 $$(addprefix $$(obj)/, $$(evdi-y) evdi_ioc32.o): $$(obj)/evdi_detect.h
 $$(obj)/evdi_detect.h: $$(src)/conftest.sh FORCE
-	$$(Q)$$(CONFIG_SHELL) $$(src)/conftest.sh "$$(CC)" \
-		"$$(NOSTDINC_FLAGS) $$(LINUXINCLUDE) $$(KBUILD_CPPFLAGS) $$(KBUILD_CFLAGS) -DMODULE" \
-		$$@.tmp
+	$$(Q)$$(CONFIG_SHELL) $$(src)/conftest.sh "$$(CC)" $$@.tmp \
+		$$(NOSTDINC_FLAGS) $$(LINUXINCLUDE) $$(KBUILD_CPPFLAGS) $$(KBUILD_CFLAGS) -DMODULE
 	$$(Q)cmp -s $$@.tmp $$@ 2>/dev/null && rm -f $$@.tmp || mv $$@.tmp $$@
 endef
 

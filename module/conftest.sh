@@ -16,8 +16,22 @@
 set -u
 
 CC="$1"
-CFLAGS="$2"
-OUT="$3"
+OUT="$2"
+shift 2
+
+# The kernel cflags are passed as separate arguments (unquoted in the Makefile
+# recipe) so the shell tokenises them honouring kbuild's own quoting -- e.g. on
+# arm64 -DARM64_ASM_ARCH='"armv8.5-a"'. Wrapping them in one quoted argument
+# would let that embedded " break the quoting and corrupt every probe. We
+# requote each one here so it can be replayed verbatim through eval.
+requote() {
+	for _a in "$@"; do
+		printf "'"
+		printf '%s' "$_a" | sed "s/'/'\\\\''/g"
+		printf "' "
+	done
+}
+CFLAGS=$(requote "$@")
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -33,9 +47,14 @@ SRC="$WORKDIR/conftest.c"
 compile_test() {
 	macro="$1"
 	cat > "$SRC"
-	if $CC $CFLAGS -Werror=implicit-function-declaration \
-	       -Werror=incompatible-pointer-types \
-	       -fsyntax-only "$SRC" >/dev/null 2>&1; then
+	# CFLAGS comes from the kernel build and can contain -D options whose
+	# values carry embedded shell quoting (e.g. on arm64
+	# -DARM64_ASM_ARCH='"armv8.5-a"'). Re-parse via eval so that quoting is
+	# honoured exactly as kbuild intended; expanding $CFLAGS unquoted would
+	# mangle it and break every probe on such architectures.
+	if eval "$CC $CFLAGS -Werror=implicit-function-declaration \
+	         -Werror=incompatible-pointer-types \
+	         -fsyntax-only $SRC" >/dev/null 2>&1; then
 		printf '#define %s 1\n' "$macro" >> "$OUT"
 	else
 		printf '/* %s not detected */\n' "$macro" >> "$OUT"
@@ -135,7 +154,8 @@ void conftest(struct drm_driver *d) { (void)d->gem_free_object; }
 EOF
 compile_test EVDI_HAVE_DRM_DRIVER_DUMB_DESTROY <<'EOF'
 #include <drm/drm_drv.h>
-void conftest(struct drm_driver *d) { (void)d->dumb_destroy; }
+#include <drm/drm_gem.h>
+struct drm_driver conftest = { .dumb_destroy = drm_gem_dumb_destroy };
 EOF
 
 # In 6.6 drm_gem_prime_fd_to_handle/_handle_to_fd became the implicit defaults,
@@ -228,7 +248,7 @@ compile_test EVDI_HAVE_COMPILER_ATTRIBUTES_H <<'EOF'
 void conftest(void) { }
 EOF
 compile_test EVDI_HAVE_FALLTHROUGH <<'EOF'
-#include <linux/compiler_attributes.h>
+#include <linux/compiler.h>
 void conftest(int x) { switch (x) { case 0: fallthrough; default: break; } }
 EOF
 
