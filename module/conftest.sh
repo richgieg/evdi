@@ -74,7 +74,7 @@ compile_test() {
 # <drm/drmP.h> was removed in 5.5. Present only on old kernels.
 compile_test EVDI_HAVE_DRMP_H <<'EOF'
 #include <drm/drmP.h>
-void conftest(void) { }
+static void conftest(void) { }
 EOF
 
 # drm_atomic_helper_dirtyfb() and <drm/drm_damage_helper.h> arrived in 5.0.
@@ -88,14 +88,14 @@ EOF
 # Present only on old kernels.
 compile_test EVDI_HAVE_GEM_OBJECT_PUT_UNLOCKED <<'EOF'
 #include <drm/drm_gem.h>
-void conftest(struct drm_gem_object *obj) { drm_gem_object_put_unlocked(obj); }
+static void conftest(struct drm_gem_object *obj) { drm_gem_object_put_unlocked(obj); }
 EOF
 
 # kzalloc_obj() became a kernel-provided helper in 6.20; before that evdi
 # defines its own fallback.
 compile_test EVDI_HAVE_KZALLOC_OBJ <<'EOF'
 #include <linux/slab.h>
-void conftest(void) { int *p = kzalloc_obj(*p, 0); (void)p; }
+static void conftest(void) { int *p = kzalloc_obj(*p, 0); (void)p; }
 EOF
 
 # The atomic helper callbacks switched to taking a struct drm_atomic_state *:
@@ -123,13 +123,13 @@ EOF
 # drm_mode_config_funcs lost its .output_poll_changed member in 6.12.
 compile_test EVDI_HAVE_OUTPUT_POLL_CHANGED <<'EOF'
 #include <drm/drm_mode_config.h>
-void conftest(struct drm_mode_config_funcs *f) { f->output_poll_changed = (void *)0; }
+static void conftest(struct drm_mode_config_funcs *f) { f->output_poll_changed = (void *)0; }
 EOF
 
 # DRIVER_PRIME feature flag was removed in 5.4 (PRIME is always available now).
 compile_test EVDI_HAVE_DRIVER_PRIME <<'EOF'
 #include <drm/drm_drv.h>
-unsigned int conftest(void) { return DRIVER_PRIME; }
+static unsigned int conftest(void) { return DRIVER_PRIME; }
 EOF
 
 # drmm_add_action_or_reset() / <drm/drm_managed.h> arrived in 5.8 (managed
@@ -137,20 +137,20 @@ EOF
 compile_test EVDI_HAVE_DRMM_ADD_ACTION <<'EOF'
 #include <drm/drm_managed.h>
 static void conftest_cb(struct drm_device *dev, void *p) { }
-void conftest(struct drm_device *dev) { (void)drmm_add_action_or_reset(dev, conftest_cb, NULL); }
+static void conftest(struct drm_device *dev) { (void)drmm_add_action_or_reset(dev, conftest_cb, NULL); }
 EOF
 
 # DRM_UNLOCKED was removed in 6.8 (all ioctls are unlocked). Present on old kernels.
 compile_test EVDI_HAVE_DRM_UNLOCKED <<'EOF'
 #include <drm/drm_ioctl.h>
-unsigned int conftest(void) { return DRM_UNLOCKED; }
+static unsigned int conftest(void) { return DRM_UNLOCKED; }
 EOF
 
 # struct drm_driver lost the GEM/dumb callbacks as they moved to
 # drm_gem_object_funcs: .gem_free_object in 5.9, .dumb_destroy in 5.12.
 compile_test EVDI_HAVE_DRM_DRIVER_GEM_FREE <<'EOF'
 #include <drm/drm_drv.h>
-void conftest(struct drm_driver *d) { (void)d->gem_free_object; }
+static void conftest(struct drm_driver *d) { (void)d->gem_free_object; }
 EOF
 compile_test EVDI_HAVE_DRM_DRIVER_DUMB_DESTROY <<'EOF'
 #include <drm/drm_drv.h>
@@ -164,7 +164,7 @@ EOF
 # (redundant-but-correct where defaulted). REVISIT during EL9/CentOS testing.
 compile_test EVDI_HAVE_GEM_PRIME_FD_TO_HANDLE <<'EOF'
 #include <drm/drm_prime.h>
-void conftest(struct drm_device *dev, struct drm_file *f, int fd, uint32_t *h)
+static void conftest(struct drm_device *dev, struct drm_file *f, int fd, uint32_t *h)
 {
 	(void)drm_gem_prime_fd_to_handle(dev, f, fd, h);
 }
@@ -175,11 +175,11 @@ EOF
 # and likewise for attach_encoder). Probed separately though they share a release.
 compile_test EVDI_HAVE_DRM_CONNECTOR_UPDATE_EDID <<'EOF'
 #include <drm/drm_connector.h>
-void conftest(struct drm_connector *c) { (void)drm_connector_update_edid_property(c, NULL); }
+static void conftest(struct drm_connector *c) { (void)drm_connector_update_edid_property(c, NULL); }
 EOF
 compile_test EVDI_HAVE_DRM_CONNECTOR_ATTACH_ENCODER <<'EOF'
 #include <drm/drm_connector.h>
-void conftest(struct drm_connector *c, struct drm_encoder *e) { (void)drm_connector_attach_encoder(c, e); }
+static void conftest(struct drm_connector *c, struct drm_encoder *e) { (void)drm_connector_attach_encoder(c, e); }
 EOF
 
 # The connector helper .mode_valid callback took a const drm_display_mode * from 6.15.
@@ -195,7 +195,7 @@ EOF
 compile_test EVDI_HAVE_CONNECTOR_FOR_EACH_ENCODER <<'EOF'
 #include <drm/drm_connector.h>
 #include <drm/drm_encoder.h>
-void conftest(struct drm_connector *c)
+static void conftest(struct drm_connector *c)
 {
 	struct drm_encoder *e;
 
@@ -207,13 +207,13 @@ EOF
 # some vendor kernels (EL8) reverted this, hence detection over version.
 compile_test EVDI_HAVE_VM_FLAGS_MOD <<'EOF'
 #include <linux/mm.h>
-void conftest(struct vm_area_struct *vma) { vm_flags_mod(vma, 0, 0); }
+static void conftest(struct vm_area_struct *vma) { vm_flags_mod(vma, 0, 0); }
 EOF
 
 # dma_buf_vmap_unlocked() / dma_buf_vunmap_unlocked() were added in 6.2.
 compile_test EVDI_HAVE_DMA_BUF_VMAP_UNLOCKED <<'EOF'
 #include <linux/dma-buf.h>
-void conftest(struct dma_buf *db, struct iosys_map *map)
+static void conftest(struct dma_buf *db, struct iosys_map *map)
 {
 	(void)dma_buf_vmap_unlocked(db, map);
 }
@@ -223,7 +223,7 @@ EOF
 # before that).
 compile_test EVDI_HAVE_FOR_EACH_SGTABLE_PAGE <<'EOF'
 #include <linux/scatterlist.h>
-void conftest(struct sg_table *sgt)
+static void conftest(struct sg_table *sgt)
 {
 	struct sg_page_iter it;
 
@@ -235,7 +235,7 @@ EOF
 # in 5.12.
 compile_test EVDI_HAVE_DRM_PRIME_SG_TO_PAGE_ARRAY <<'EOF'
 #include <drm/drm_prime.h>
-void conftest(struct sg_table *sg, struct page **pages, unsigned int n)
+static void conftest(struct sg_table *sg, struct page **pages, unsigned int n)
 {
 	(void)drm_prime_sg_to_page_array(sg, pages, n);
 }
@@ -245,11 +245,11 @@ EOF
 # provides (5.4) -- probed separately because the header predates the macro.
 compile_test EVDI_HAVE_COMPILER_ATTRIBUTES_H <<'EOF'
 #include <linux/compiler_attributes.h>
-void conftest(void) { }
+static void conftest(void) { }
 EOF
 compile_test EVDI_HAVE_FALLTHROUGH <<'EOF'
 #include <linux/compiler.h>
-void conftest(int x) { switch (x) { case 0: fallthrough; default: break; } }
+static void conftest(int x) { switch (x) { case 0: fallthrough; default: break; } }
 EOF
 
 # MODULE_IMPORT_NS took a bare token until 6.13, when it began requiring a
@@ -267,14 +267,14 @@ EOF
 # <drm/drm_probe_helper.h> was split out in 5.1.
 compile_test EVDI_HAVE_DRM_PROBE_HELPER_H <<'EOF'
 #include <drm/drm_probe_helper.h>
-void conftest(void) { }
+static void conftest(void) { }
 EOF
 
 # struct drm_device gained a .debugfs_root member in 6.7 (along with
 # debugfs_lookup_and_remove) -- gates the measure_copy debugfs feature.
 compile_test EVDI_HAVE_DRM_DEBUGFS_ROOT <<'EOF'
 #include <drm/drm_device.h>
-void conftest(struct drm_device *dev) { (void)dev->debugfs_root; }
+static void conftest(struct drm_device *dev) { (void)dev->debugfs_root; }
 EOF
 
 # drm_prime_pages_to_sg() gained a leading struct drm_device * in 5.10. Also
@@ -282,7 +282,7 @@ EOF
 # which has no API surface of its own but shares this exact boundary.
 compile_test EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV <<'EOF'
 #include <drm/drm_prime.h>
-void conftest(struct drm_device *dev, struct page **pages, unsigned int n)
+static void conftest(struct drm_device *dev, struct page **pages, unsigned int n)
 {
 	(void)drm_prime_pages_to_sg(dev, pages, n);
 }
@@ -298,7 +298,7 @@ EOF
 # <drm/drm_irq.h> was removed in 5.15. Present only on old kernels.
 compile_test EVDI_HAVE_DRM_IRQ_H <<'EOF'
 #include <drm/drm_irq.h>
-void conftest(void) { }
+static void conftest(void) { }
 EOF
 
 # The GEM vmap callback moved to a map descriptor: struct dma_buf_map in 5.11,
@@ -331,14 +331,14 @@ EOF
 # Intel-IOMMU dummy-domain workaround only applies where that field exists.
 compile_test EVDI_HAVE_DEV_ARCHDATA_IOMMU <<'EOF'
 #include <linux/platform_device.h>
-void conftest(struct platform_device *pdev) { pdev->dev.archdata.iommu = (void *)0; }
+static void conftest(struct platform_device *pdev) { pdev->dev.archdata.iommu = (void *)0; }
 EOF
 
 # struct drm_driver lost its .date member in 6.14 (DRIVER_DATE removal).
 # Present only on old kernels.
 compile_test EVDI_HAVE_DRM_DRIVER_DATE <<'EOF'
 #include <drm/drm_drv.h>
-void conftest(struct drm_driver *drv) { (void)drv->date; }
+static void conftest(struct drm_driver *drv) { (void)drv->date; }
 EOF
 
 # drm_ioctl_compat_t moved into <drm/drm_ioctl.h> in 5.16. When this is not
@@ -354,7 +354,7 @@ EOF
 # field. Present only on old kernels.
 compile_test EVDI_HAVE_I2C_CLASS_DDC <<'EOF'
 #include <linux/i2c.h>
-unsigned int conftest(void) { return I2C_CLASS_DDC; }
+static unsigned int conftest(void) { return I2C_CLASS_DDC; }
 EOF
 
 # drm_helper_mode_fill_fb_struct() and the .fb_create hook gained a
@@ -362,7 +362,7 @@ EOF
 compile_test EVDI_HAVE_FB_FORMAT_INFO <<'EOF'
 #include <drm/drm_crtc.h>
 #include <drm/drm_modeset_helper.h>
-void conftest(struct drm_device *dev, struct drm_framebuffer *fb,
+static void conftest(struct drm_device *dev, struct drm_framebuffer *fb,
 	      const struct drm_format_info *info,
 	      const struct drm_mode_fb_cmd2 *mode_cmd)
 {
