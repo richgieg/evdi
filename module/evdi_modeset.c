@@ -14,7 +14,9 @@
 #include <linux/version.h>
 #ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_vblank.h>
+#ifdef EVDI_HAVE_DRM_DAMAGE_HELPER_H
 #include <drm/drm_damage_helper.h>
+#endif
 #elif defined(EVDI_HAVE_ATOMIC_DIRTYFB)
 #include <drm/drm_damage_helper.h>
 #else
