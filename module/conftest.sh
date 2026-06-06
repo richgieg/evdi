@@ -77,19 +77,19 @@ compile_test EVDI_HAVE_DRMP_H <<'EOF'
 static void conftest(void) { }
 EOF
 
-# TODO: Add comment...
+# <linux/minmax.h> arrived in 5.10.
 compile_test EVDI_HAVE_MINMAX_H <<'EOF'
 #include <linux/minmax.h>
 static void conftest(void) { }
 EOF
 
-# TODO: Add comment...
+# <drm/drm_gem_ttm_helper.h> arrived in 5.5.
 compile_test EVDI_HAVE_DRM_GEM_TTM_HELPER_H <<'EOF'
 #include <drm/drm_gem_ttm_helper.h>
 static void conftest(void) { }
 EOF
 
-# TODO: Add comment...
+# <drm/drm_damage_helper.h> arrived in 5.0.
 compile_test EVDI_HAVE_DRM_DAMAGE_HELPER_H <<'EOF'
 #include <drm/drm_damage_helper.h>
 static void conftest(void) { }
