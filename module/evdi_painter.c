@@ -11,6 +11,7 @@
 #include "linux/mm.h"
 #include <linux/version.h>
 #ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
+#include <linux/idr.h>
 #include <drm/drm_file.h>
 #include <drm/drm_vblank.h>
 #include <drm/drm_ioctl.h>
