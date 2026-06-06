@@ -14,7 +14,9 @@
 #include <linux/dma-buf-map.h>
 #endif
 #ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
+#ifdef EVDI_HAVE_DRM_GEM_TTM_HELPER_H
 #include <drm/drm_gem_ttm_helper.h>
+#endif
 #include <drm/drm_prime.h>
 #include <drm/drm_file.h>
 #ifdef EVDI_HAVE_MINMAX_H

@@ -83,6 +83,12 @@ compile_test EVDI_HAVE_MINMAX_H <<'EOF'
 static void conftest(void) { }
 EOF
 
+# TODO: Add comment...
+compile_test EVDI_HAVE_DRM_GEM_TTM_HELPER_H <<'EOF'
+#include <drm/drm_gem_ttm_helper.h>
+static void conftest(void) { }
+EOF
+
 # drm_atomic_helper_dirtyfb() and <drm/drm_damage_helper.h> arrived in 5.0.
 compile_test EVDI_HAVE_ATOMIC_DIRTYFB <<'EOF'
 #include <drm/drm_framebuffer.h>
