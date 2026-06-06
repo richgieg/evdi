@@ -18,6 +18,7 @@
 #include <drm/drm_gem_ttm_helper.h>
 #endif
 #include <drm/drm_prime.h>
+#include <linux/idr.h>
 #include <drm/drm_file.h>
 #ifdef EVDI_HAVE_MINMAX_H
 #include <linux/minmax.h>
