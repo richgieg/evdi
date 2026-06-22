@@ -65,7 +65,9 @@ static void evdi_crtc_set_nofb(__always_unused struct drm_crtc *crtc)
 
 static void evdi_crtc_atomic_flush(
 	struct drm_crtc *crtc
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
+#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
+	, struct drm_atomic_commit *state
+#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
 	, struct drm_atomic_state *state
 #else
 	, __always_unused struct drm_crtc_state *old_state
@@ -218,7 +220,9 @@ static const struct drm_crtc_funcs evdi_crtc_funcs = {
 };
 
 static void evdi_plane_atomic_update(struct drm_plane *plane,
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
+				     struct drm_atomic_commit *atom_state
+#elif KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
@@ -316,7 +320,9 @@ static void evdi_cursor_atomic_get_rect(struct drm_clip_rect *rect,
 }
 
 static void evdi_cursor_atomic_update(struct drm_plane *plane,
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
+				     struct drm_atomic_commit *atom_state
+#elif KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
