@@ -161,7 +161,13 @@ clone_linux()
   parent_dir="$(linux_dir)"
   mkdir -p "$parent_dir"
   cd "$parent_dir"
-  git clone https://github.com/torvalds/linux
+  (. /etc/os-release
+  if [[ "${ID}" == "centos" ]]; then
+    git clone https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-${VERSION_ID}.git linux
+  else
+    git clone https://github.com/torvalds/linux
+  fi
+  )
   )
 }
 
@@ -220,7 +226,7 @@ prepare_kernel() { ( # SRC_DIR CC
   make prepare CC="${2}" --jobs="${JOBS}"
   make modules_prepare CC="${2}" --jobs="${JOBS}"
 
-  if [[ "${KVER}" != "master" ]] ; then
+  if [[ "${KVER}" != "master" ]] && [[ "${KVER}" != "main" ]] ; then
     if [[ "${KVER:0:1}" -lt "5" ]]; then
       make scripts CC="${2}" --jobs="${JOBS}"
     fi
@@ -244,6 +250,9 @@ build_one() { # KVER
   local extra_cflags="-DCONFIG_DRM_TTM_HELPER"
   if [ "${KVER}" == "master" ]; then
     KTAG="origin/master"
+  elif [ "${KVER}" == "main" ]; then
+    KTAG="origin/main"
+
   else
     KTAG="v$KVER"
   fi
@@ -253,7 +262,7 @@ build_one() { # KVER
   else
     src_dir=$evdi_dir/tmp/linux-$KVER
   fi
-  if [[ "${KVER}" != "master" ]] ; then
+  if [[ "${KVER}" != "master" ]] && [[ "${KVER}" != "main" ]]; then
     [[ ${KVER:0:1} -lt "5" ]] && extra_cflags="-Wno-discarded-qualifiers"
     [[ ${KVER:0:1} == "5" ]] && [[ ${KVER:2:2} -lt "6" ]] && extra_cflags="-Wno-discarded-qualifiers"
   fi
