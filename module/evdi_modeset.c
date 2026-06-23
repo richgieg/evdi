@@ -67,14 +67,17 @@ static void evdi_crtc_set_nofb(__always_unused struct drm_crtc *crtc)
 
 static void evdi_crtc_atomic_flush(
 	struct drm_crtc *crtc
-#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
+#ifdef EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG
+	, struct drm_atomic_commit *state
+#elif defined(EVDI_HAVE_CRTC_ATOMIC_STATE_ARG)
 	, struct drm_atomic_state *state
 #else
 	, __always_unused struct drm_crtc_state *old_state
 #endif
 	)
 {
-#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
+
+#if defined(EVDI_HAVE_CRTC_ATOMIC_STATE_ARG) || defined(EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG)
 	struct drm_crtc_state *crtc_state = drm_atomic_get_new_crtc_state(state, crtc);
 #else
 	struct drm_crtc_state *crtc_state = crtc->state;
@@ -220,14 +223,16 @@ static const struct drm_crtc_funcs evdi_crtc_funcs = {
 };
 
 static void evdi_plane_atomic_update(struct drm_plane *plane,
-#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
+#ifdef EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG
+				     struct drm_atomic_commit *atom_state
+#elif defined(EVDI_HAVE_PLANE_ATOMIC_STATE_ARG)
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
 #endif
 		)
 {
-#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
+#if defined(EVDI_HAVE_PLANE_ATOMIC_STATE_ARG) || defined(EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG)
 	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
 #else
 #endif
@@ -318,14 +323,16 @@ static void evdi_cursor_atomic_get_rect(struct drm_clip_rect *rect,
 }
 
 static void evdi_cursor_atomic_update(struct drm_plane *plane,
-#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
+#ifdef EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG
+				     struct drm_atomic_commit *atom_state
+#elif defined(EVDI_HAVE_PLANE_ATOMIC_STATE_ARG)
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
 #endif
 		)
 {
-#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
+#if defined(EVDI_HAVE_PLANE_ATOMIC_STATE_ARG) || defined(EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG)
 	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
 
 #else

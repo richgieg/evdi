@@ -125,11 +125,21 @@ compile_test EVDI_HAVE_CRTC_ATOMIC_STATE_ARG <<'EOF'
 static void conftest_flush(struct drm_crtc *c, struct drm_atomic_state *s) { }
 struct drm_crtc_helper_funcs conftest = { .atomic_flush = conftest_flush };
 EOF
+
+# The atomic helper callbacks switched to taking a struct drm_atomic_commit *:
+# the CRTC callbacks (.atomic_flush) in 7.2
+compile_test EVDI_HAVE_CRTC_ATOMIC_COMMIT_ARG <<'EOF'
+#include <drm/drm_modeset_helper_vtables.h>
+static void conftest_flush(struct drm_crtc *c, struct drm_atomic_commit *s) { }
+struct drm_crtc_helper_funcs conftest = { .atomic_flush = conftest_flush };
+EOF
+
 compile_test EVDI_HAVE_PLANE_ATOMIC_STATE_ARG <<'EOF'
 #include <drm/drm_modeset_helper_vtables.h>
 static void conftest_update(struct drm_plane *p, struct drm_atomic_state *s) { }
 struct drm_plane_helper_funcs conftest = { .atomic_update = conftest_update };
 EOF
+
 
 # drm_gem_plane_helper_prepare_fb() (in <drm/drm_gem_atomic_helper.h>) replaced
 # drm_gem_fb_prepare_fb in 5.13.
