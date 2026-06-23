@@ -54,6 +54,24 @@ pipeline {
                 }
             }
         }
+        stage ('Validate CentOS 9 kernel against origin/main') {
+            agent {
+                docker {
+                    image "swt/evdi-centos-9:1.0"
+                    label 'linux && big && docker'
+                    reuseNode true
+                }
+            }
+            steps {
+                dir('src') {
+                    sh '''#!/usr/bin/env bash
+                        set -e
+                        git checkout origin/main
+                        ./ci/build_against_kernel --repo-ci main
+                        '''
+                }
+            }
+        }
         stage ('Validate vanilla kernel against github/main') {
             agent {
                 docker {
@@ -78,6 +96,24 @@ pipeline {
             agent {
                 docker {
                     image "swt/evdi-centos-10:1.0"
+                    label 'linux && big && docker'
+                    reuseNode true
+                }
+            }
+            steps {
+                dir('src') {
+                    sh '''#!/usr/bin/env bash
+                        set -e
+                        git checkout github/main
+                        ./ci/build_against_kernel --repo-ci main
+                        '''
+                }
+            }
+        }
+        stage ('Validate CentOS 9 kernel against github/main') {
+            agent {
+                docker {
+                    image "swt/evdi-centos-9:1.0"
                     label 'linux && big && docker'
                     reuseNode true
                 }
