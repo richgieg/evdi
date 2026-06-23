@@ -158,7 +158,7 @@ clone_linux()
 {
   (
   local parent_dir
-  parent_dir="$(linux_dir)"
+  parent_dir="$(dirname "$(linux_dir)")"
   mkdir -p "$parent_dir"
   cd "$parent_dir"
   (. /etc/os-release
@@ -246,21 +246,21 @@ build_one() { # KVER
   echo ""
 
   local src_dir
-  local KTAG=v${KVER}
+  local KTAG=${KVER}
   local extra_cflags="-DCONFIG_DRM_TTM_HELPER"
   if [ "${KVER}" == "master" ]; then
-    KTAG="origin/master"
+    [[ ${MODE} == REPO* ]] && KTAG="origin/master"
   elif [ "${KVER}" == "main" ]; then
-    KTAG="origin/main"
-
+    [[ ${MODE} == REPO* ]] && KTAG="origin/main"
   else
     KTAG="v$KVER"
   fi
+
   prepare_sources "$KTAG" "linux-$KVER" "${CC}"
   if [[ ${MODE} == REPO* ]]; then
     src_dir="$(linux_dir)"
   else
-    src_dir=$evdi_dir/tmp/linux-$KVER
+    src_dir="$(cd "$TMP" && pwd)/linux-$KVER"
   fi
   if [[ "${KVER}" != "master" ]] && [[ "${KVER}" != "main" ]]; then
     [[ ${KVER:0:1} -lt "5" ]] && extra_cflags="-Wno-discarded-qualifiers"
