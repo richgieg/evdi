@@ -22,9 +22,11 @@ clone_linux()
   parent_dir="$(dirname "$(linux_dir)")"
   mkdir -p "$parent_dir"
   cd "$parent_dir"
-  (. /etc/os-release
+  (
+  # shellcheck disable=SC1091
+  . /etc/os-release
   if [[ "${ID}" == "centos" ]]; then
-    git clone https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-${VERSION_ID}.git linux
+    git clone https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-"${VERSION_ID}".git linux
   else
     git clone https://github.com/torvalds/linux
   fi
