@@ -13,6 +13,8 @@ module/.tmp_versions/
 module/built-in.a
 module/evdi.mod
 module/evdi.mod.c
+module/evdi_detect.h
+module/evdi_detect.h.tmp
 
 site/
 tmp/

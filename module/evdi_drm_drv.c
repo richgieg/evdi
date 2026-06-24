@@ -12,19 +12,19 @@
  */
 
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_ioctl.h>
+#include <linux/idr.h>
 #include <drm/drm_file.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_vblank.h>
-#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
-#else
+#elif defined(EVDI_HAVE_DRMP_H)
 #include <drm/drmP.h>
 #endif
-#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PROBE_HELPER_H
 #include <drm/drm_probe_helper.h>
 #endif
-#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRMM_ADD_ACTION
 #include <drm/drm_managed.h>
 #endif
 #include <drm/drm_atomic_helper.h>
@@ -34,10 +34,10 @@
 #include "evdi_debug.h"
 #include "evdi_drm.h"
 
-#if KERNEL_VERSION(6, 8, 0) <= LINUX_VERSION_CODE || defined(EL9)
-#define EVDI_DRM_UNLOCKED 0
-#else
+#ifdef EVDI_HAVE_DRM_UNLOCKED
 #define EVDI_DRM_UNLOCKED DRM_UNLOCKED
+#else
+#define EVDI_DRM_UNLOCKED 0
 #endif
 
 static struct drm_driver driver;
@@ -50,7 +50,7 @@ struct drm_ioctl_desc evdi_painter_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(EVDI_ENABLE_CURSOR_EVENTS, evdi_painter_enable_cursor_events_ioctl, EVDI_DRM_UNLOCKED),
 };
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 #else
 static const struct vm_operations_struct evdi_gem_vm_ops = {
 	.fault = evdi_gem_fault,
@@ -79,7 +79,7 @@ static const struct file_operations evdi_driver_fops = {
 #endif
 };
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 #else
 static int evdi_enable_vblank(__always_unused struct drm_device *dev,
 			      __always_unused unsigned int pipe)
@@ -94,33 +94,33 @@ static void evdi_disable_vblank(__always_unused struct drm_device *dev,
 #endif
 
 static struct drm_driver driver = {
-#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE || defined(EL8)
-	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_ATOMIC,
-#else
+#ifdef EVDI_HAVE_DRIVER_PRIME
 	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME
 			 | DRIVER_ATOMIC,
+#else
+	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_ATOMIC,
 #endif
 
 	.open = evdi_driver_open,
 	.postclose = evdi_driver_postclose,
 
 	/* gem hooks */
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#elif KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
-	.gem_free_object_unlocked = evdi_gem_free_object,
-#else
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
+	/* GEM hooks live in drm_gem_object_funcs (5.11+) */
+#elif defined(EVDI_HAVE_DRM_DRIVER_GEM_FREE)
 	.gem_free_object = evdi_gem_free_object,
+#else
+	.gem_free_object_unlocked = evdi_gem_free_object,
 #endif
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 #else
 	.gem_vm_ops = &evdi_gem_vm_ops,
 #endif
 
 	.dumb_create = evdi_dumb_create,
 	.dumb_map_offset = evdi_gem_mmap,
-#if KERNEL_VERSION(5, 12, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifdef EVDI_HAVE_DRM_DRIVER_DUMB_DESTROY
 	.dumb_destroy = drm_gem_dumb_destroy,
 #endif
 
@@ -130,12 +130,11 @@ static struct drm_driver driver = {
 	.fops = &evdi_driver_fops,
 
 	.gem_prime_import = drm_gem_prime_import,
-#if KERNEL_VERSION(6, 6, 0) <= LINUX_VERSION_CODE || defined(EL9)
-#else
+#ifdef EVDI_HAVE_GEM_PRIME_FD_TO_HANDLE
 	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
 	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
 #endif
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#if defined(EVDI_HAVE_IOSYS_MAP) || defined(EVDI_HAVE_DMA_BUF_MAP)
 #else
 	.preclose = evdi_driver_preclose,
 	.gem_prime_export = drm_gem_prime_export,
@@ -147,8 +146,7 @@ static struct drm_driver driver = {
 
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
-#if KERNEL_VERSION(6, 14, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
-#else
+#ifdef EVDI_HAVE_DRM_DRIVER_DATE
 	.date = DRIVER_DATE,
 #endif
 	.major = DRIVER_MAJOR,
@@ -198,7 +196,7 @@ static int evdi_drm_device_init(struct drm_device *dev)
 		goto err_init;
 	drm_kms_helper_poll_init(dev);
 
-#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRMM_ADD_ACTION
 	ret = drmm_add_action_or_reset(dev, evdi_drm_device_release_cb, NULL);
 	if (ret)
 		goto err_init;
@@ -283,8 +281,7 @@ int evdi_drm_device_remove(struct drm_device *dev)
 {
 	drm_dev_unplug(dev);
 	evdi_drm_device_deinit(dev);
-#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifndef EVDI_HAVE_DRMM_ADD_ACTION
 	evdi_drm_device_release_cb(dev, NULL);
 #endif
 	drm_dev_put(dev);

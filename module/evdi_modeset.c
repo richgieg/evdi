@@ -12,10 +12,12 @@
  */
 
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
+#ifdef EVDI_HAVE_DRM_IOCTL_COMPAT_T
 #include <drm/drm_vblank.h>
+#ifdef EVDI_HAVE_DRM_DAMAGE_HELPER_H
 #include <drm/drm_damage_helper.h>
-#elif KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE
+#endif
+#elif defined(EVDI_HAVE_ATOMIC_DIRTYFB)
 #include <drm/drm_damage_helper.h>
 #else
 #include <drm/drmP.h>
@@ -29,7 +31,7 @@
 #include "evdi_drm_drv.h"
 #include "evdi_cursor.h"
 #include "evdi_params.h"
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_GEM_PLANE_HELPER_PREPARE_FB
 #include <drm/drm_gem_atomic_helper.h>
 #else
 #include <drm/drm_gem_framebuffer_helper.h>
@@ -65,16 +67,14 @@ static void evdi_crtc_set_nofb(__always_unused struct drm_crtc *crtc)
 
 static void evdi_crtc_atomic_flush(
 	struct drm_crtc *crtc
-#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
-	, struct drm_atomic_commit *state
-#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
+#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
 	, struct drm_atomic_state *state
 #else
 	, __always_unused struct drm_crtc_state *old_state
 #endif
 	)
 {
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
+#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
 	struct drm_crtc_state *crtc_state = drm_atomic_get_new_crtc_state(state, crtc);
 #else
 	struct drm_crtc_state *crtc_state = crtc->state;
@@ -96,7 +96,7 @@ static void evdi_crtc_atomic_flush(
 	crtc_state->event = NULL;
 }
 
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV
 #else
 static void evdi_mark_full_screen_dirty(struct evdi_device *evdi)
 {
@@ -146,10 +146,10 @@ static int evdi_crtc_cursor_set(struct drm_crtc *crtc,
 	evdi_cursor_set(evdi->cursor,
 			eobj, width, height, hot_x, hot_y,
 			format, stride);
-	#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
-	drm_gem_object_put(obj);
-	#else
+	#ifdef EVDI_HAVE_GEM_OBJECT_PUT_UNLOCKED
 	drm_gem_object_put_unlocked(obj);
+	#else
+	drm_gem_object_put(obj);
 	#endif
 
 	/*
@@ -189,7 +189,7 @@ static struct drm_crtc_helper_funcs evdi_helper_funcs = {
 	.disable        = evdi_crtc_disable
 };
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
+#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
 static int evdi_enable_vblank(__always_unused struct drm_crtc *crtc)
 {
 	return 1;
@@ -208,28 +208,26 @@ static const struct drm_crtc_funcs evdi_crtc_funcs = {
 	.atomic_duplicate_state = drm_atomic_helper_crtc_duplicate_state,
 	.atomic_destroy_state   = drm_atomic_helper_crtc_destroy_state,
 
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV
 #else
 	.cursor_set2            = evdi_crtc_cursor_set,
 	.cursor_move            = evdi_crtc_cursor_move,
 #endif
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
+#ifdef EVDI_HAVE_CRTC_ATOMIC_STATE_ARG
 	.enable_vblank          = evdi_enable_vblank,
 	.disable_vblank         = evdi_disable_vblank,
 #endif
 };
 
 static void evdi_plane_atomic_update(struct drm_plane *plane,
-#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
-				     struct drm_atomic_commit *atom_state
-#elif KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
 #endif
 		)
 {
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
 	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
 #else
 #endif
@@ -238,7 +236,7 @@ static void evdi_plane_atomic_update(struct drm_plane *plane,
 	struct evdi_painter *painter;
 	struct drm_crtc *crtc;
 
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_ATOMIC_DIRTYFB
 	struct drm_atomic_helper_damage_iter iter;
 	struct drm_rect rect;
 	struct drm_clip_rect clip_rect;
@@ -286,7 +284,7 @@ static void evdi_plane_atomic_update(struct drm_plane *plane,
 
 			evdi_painter_set_scanout_buffer(painter, efb);
 
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_ATOMIC_DIRTYFB
 			state->visible = true;
 			state->src.x1 = 0;
 			state->src.y1 = 0;
@@ -320,16 +318,14 @@ static void evdi_cursor_atomic_get_rect(struct drm_clip_rect *rect,
 }
 
 static void evdi_cursor_atomic_update(struct drm_plane *plane,
-#if KERNEL_VERSION(7, 2, 0) <= LINUX_VERSION_CODE
-				     struct drm_atomic_commit *atom_state
-#elif KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
 				     struct drm_atomic_state *atom_state
 #else
 				     struct drm_plane_state *old_state
 #endif
 		)
 {
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_PLANE_ATOMIC_STATE_ARG
 	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
 
 #else
@@ -397,7 +393,7 @@ static void evdi_cursor_atomic_update(struct drm_plane *plane,
 
 static const struct drm_plane_helper_funcs evdi_plane_helper_funcs = {
 	.atomic_update = evdi_plane_atomic_update,
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_GEM_PLANE_HELPER_PREPARE_FB
 	.prepare_fb = drm_gem_plane_helper_prepare_fb
 #else
 	.prepare_fb = drm_gem_fb_prepare_fb
@@ -406,7 +402,7 @@ static const struct drm_plane_helper_funcs evdi_plane_helper_funcs = {
 
 static const struct drm_plane_helper_funcs evdi_cursor_helper_funcs = {
 	.atomic_update = evdi_cursor_atomic_update,
-#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_GEM_PLANE_HELPER_PREPARE_FB
 	.prepare_fb = drm_gem_plane_helper_prepare_fb
 #else
 	.prepare_fb = drm_gem_fb_prepare_fb
@@ -482,12 +478,12 @@ static int evdi_crtc_init(struct drm_device *dev)
 	primary_plane = evdi_create_plane(dev, DRM_PLANE_TYPE_PRIMARY,
 					  &evdi_plane_helper_funcs);
 
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PRIME_PAGES_TO_SG_DEV
 	cursor_plane = evdi_create_plane(dev, DRM_PLANE_TYPE_CURSOR,
 						&evdi_cursor_helper_funcs);
 #endif
 
-#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_ATOMIC_DIRTYFB
 	drm_plane_enable_fb_damage_clips(primary_plane);
 #endif
 
@@ -505,8 +501,7 @@ static int evdi_crtc_init(struct drm_device *dev)
 
 static const struct drm_mode_config_funcs evdi_mode_funcs = {
 	.fb_create = evdi_fb_user_fb_create,
-#if KERNEL_VERSION(6, 11, 0) < LINUX_VERSION_CODE || defined(EL9)
-#else
+#ifdef EVDI_HAVE_OUTPUT_POLL_CHANGED
 	.output_poll_changed = NULL,
 #endif
 	.atomic_commit = drm_atomic_helper_commit,
@@ -543,8 +538,7 @@ void evdi_modeset_init(struct drm_device *dev)
 
 void evdi_modeset_cleanup(__maybe_unused struct drm_device *dev)
 {
-#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
-#else
+#ifndef EVDI_HAVE_DRMM_ADD_ACTION
 	drm_mode_config_cleanup(dev);
 #endif
 }

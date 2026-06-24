@@ -18,7 +18,7 @@
 #include <drm/drm_atomic_helper.h>
 #include "evdi_drm_drv.h"
 
-#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_PROBE_HELPER_H
 #include <drm/drm_probe_helper.h>
 #endif
 
@@ -36,7 +36,7 @@ static int evdi_get_modes(struct drm_connector *connector)
 	edid = (struct edid *)evdi_painter_get_edid_copy(evdi);
 
 	if (!edid) {
-#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_CONNECTOR_UPDATE_EDID
 		drm_connector_update_edid_property(connector, NULL);
 #else
 		drm_mode_connector_update_edid_property(connector, NULL);
@@ -44,7 +44,7 @@ static int evdi_get_modes(struct drm_connector *connector)
 		return 0;
 	}
 
-#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_DRM_CONNECTOR_UPDATE_EDID
 	ret = drm_connector_update_edid_property(connector, edid);
 #else
 	ret = drm_mode_connector_update_edid_property(connector, edid);
@@ -78,7 +78,7 @@ static bool is_lowest_frequency_mode_of_given_resolution(
 }
 
 static enum drm_mode_status evdi_mode_valid(struct drm_connector *connector,
-#if KERNEL_VERSION(6, 15, 0) <= LINUX_VERSION_CODE || defined(EL9) || defined(EL10)
+#ifdef EVDI_HAVE_CONNECTOR_MODE_VALID_CONST
 					    const struct drm_display_mode *mode)
 #else
 					    struct drm_display_mode *mode)
@@ -149,7 +149,7 @@ static void evdi_connector_destroy(struct drm_connector *connector)
 
 static struct drm_encoder *evdi_best_encoder(struct drm_connector *connector)
 {
-#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
+#ifdef EVDI_HAVE_CONNECTOR_FOR_EACH_ENCODER
 	struct drm_encoder *encoder;
 
 	drm_connector_for_each_possible_encoder(connector, encoder) {
@@ -198,7 +198,7 @@ int evdi_connector_init(struct drm_device *dev, struct drm_encoder *encoder)
 
 	evdi->conn = connector;
 
-#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE  || defined(EL8)
+#ifdef EVDI_HAVE_DRM_CONNECTOR_ATTACH_ENCODER
 	drm_connector_attach_encoder(connector, encoder);
 #else
 	drm_mode_connector_attach_encoder(connector, encoder);

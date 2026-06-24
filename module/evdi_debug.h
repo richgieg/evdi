@@ -56,8 +56,7 @@
 void evdi_log_process(char *buf, size_t size);
 
 
-#if KERNEL_VERSION(6, 20, 0) <= LINUX_VERSION_CODE
-#else
+#ifndef EVDI_HAVE_KZALLOC_OBJ
 #define kzalloc_obj(obj, flags) kzalloc(sizeof(typeof(obj)), flags)
 #endif
 
