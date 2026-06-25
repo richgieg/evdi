@@ -2,7 +2,7 @@
 import PyEvdi
 
 VERSION_MAJOR = 1
-VERSION_MINOR = 14
+VERSION_MINOR = 15
 
 def testVersion():
     assert PyEvdi.version[:-1] == (VERSION_MAJOR, VERSION_MINOR)
